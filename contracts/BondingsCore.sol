@@ -91,7 +91,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
         uint256 sum2 = (supply == 0 && amount == 1) ? 0 : 
             (supply + amount - 1) * (supply + amount) * (2 * (supply + amount - 1) + 1) / 6;
         uint256 summation = sum2 - sum1;
-        return summation * 10 ** 12;
+        return summation * 10;
     }
 
     function getBuyPrice(string memory name, uint256 amount) public view returns (uint256) {

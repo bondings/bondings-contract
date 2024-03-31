@@ -8,6 +8,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       blast_sepolia: "blast_sepolia", // apiKey is not required, just set a placeholder
+      base: process.env.BASE_SCAN_API!,
     },
     customChains: [
       {
@@ -28,7 +29,7 @@ const config: HardhatUserConfig = {
     polygon: {
       url: process.env.POLYGON_RPC,
       accounts: [
-        process.env.PRIVATE_KEY_ADMIN!, 
+        process.env.PRIVATE_KEY_ADMIN!,
       ]
       // gas: "auto",
       // gasPrice: 150000000000, // 150Gwei
@@ -38,9 +39,15 @@ const config: HardhatUserConfig = {
       url: 'https://sepolia.blast.io',
       chainId: 168587773,
       accounts: [
-        process.env.PRIVATE_KEY_ADMIN!, 
+        process.env.PRIVATE_KEY_ADMIN!,
       ]
-    }
+    },
+    base: {
+      url: process.env.BASE_RPC,
+      accounts: [
+        process.env.PRIVATE_KEY_ADMIN!,
+      ]
+    },
   }
 };
 
