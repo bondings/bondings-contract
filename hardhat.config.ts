@@ -48,6 +48,12 @@ const config: HardhatUserConfig = {
         process.env.PRIVATE_KEY_ADMIN!,
       ]
     },
+    sepolia: {
+      url: process.env.SEPOLIA_RPC,
+      accounts: [
+        process.env.PRIVATE_KEY_ADMIN!,
+      ]
+    },
   }
 };
 

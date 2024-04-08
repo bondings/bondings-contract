@@ -83,7 +83,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
 
     /* ====================== Pure / View functions ===================== */
     function disableSignatureMode() public virtual pure returns (bool) {
-        return false;
+        return true;
     }
 
     function getPrice(uint256 supply, uint256 amount) public pure returns (uint256) {

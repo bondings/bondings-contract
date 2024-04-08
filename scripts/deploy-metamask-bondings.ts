@@ -7,7 +7,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 async function main() {
   const testMode = false
 
-  const mUSDBAddress = process.env.BLAST_MOCK_USDB!
+  const mUSDBAddress = process.env.SEPOLIA_USDC!
   const backendSignerAddress = process.env.BACKEND_SIGNER!
   const protocolFeeDestination = process.env.ADDRESS_FEE_DESTINATION!
 
