@@ -1,6 +1,6 @@
 import { ethers, upgrades } from "hardhat"
 import "dotenv/config"
-import { BondingsCore } from "../typechain-types"
+import { BondingsCore } from "../../typechain-types"
 import { MetamaskConnector } from "@web3camp/hardhat-metamask-connector";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 

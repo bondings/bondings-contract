@@ -7,8 +7,7 @@ import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 async function main() {
   const testMode = false
 
-  const mUSDBAddress = process.env.SEPOLIA_USDC!
-  const backendSignerAddress = process.env.BACKEND_SIGNER!
+  const mUSDCAddress = process.env.SEPOLIA_USDC!
   const protocolFeeDestination = process.env.ADDRESS_FEE_DESTINATION!
 
   const connector = new MetamaskConnector();
@@ -17,14 +16,13 @@ async function main() {
   console.log("\x1b[0mSigner(Admin) Address:\x1b[32m", adminAddress, "\x1b[0m")
 
   const bondingsCore = await deployBondingsCore(
-    admin, backendSignerAddress, mUSDBAddress, protocolFeeDestination, testMode
+    admin, mUSDCAddress, protocolFeeDestination, testMode
   )
   console.log("\x1b[0mBondingsCore deployed to:\x1b[32m", await bondingsCore.getAddress())
 }
 
 async function deployBondingsCore(
   admin: SignerWithAddress,
-  backendSignerAddress: string,
   uintTokenAddress: string,
   protocolFeeDestination: string,
   testMode: boolean
@@ -34,7 +32,7 @@ async function deployBondingsCore(
     bondingsCoreContractName, { signer: admin }
   )
   const bondingsCore = await upgrades.deployProxy(
-    bondingsCoreFactory, [backendSignerAddress, uintTokenAddress, protocolFeeDestination],
+    bondingsCoreFactory, [uintTokenAddress, protocolFeeDestination],
   )
   return (bondingsCore as unknown as BondingsCore)
 }

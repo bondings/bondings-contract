@@ -1,6 +1,6 @@
 import { ethers, upgrades } from "hardhat"
 import "dotenv/config"
-import { BONX, BondingsCore, MockUSDB } from "../typechain-types"
+import { BondingsCore } from "../../typechain-types"
 import { MetamaskConnector } from "@web3camp/hardhat-metamask-connector";
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
@@ -18,7 +18,7 @@ async function main() {
 }
 
 async function deployMockUSDB(admin: SignerWithAddress) {
-  return (await ethers.deployContract("MockUSDB", { signer: admin })) as MockUSDB
+  return (await ethers.deployContract("MockUSDB", { signer: admin }))
 }
 
 main()
