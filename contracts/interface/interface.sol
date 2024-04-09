@@ -1,53 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-// Generate by https://gnidan.github.io/abi-to-sol/
-
-interface IERC20 {
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
-
-    function approve(address spender, uint256 amount) external returns (bool);
-
-    function balanceOf(address account) external view returns (uint256);
-
-    function decimals() external pure returns (uint8);
-
-    function decreaseAllowance(address spender, uint256 subtractedValue)
-        external
-        returns (bool);
-
-    function increaseAllowance(address spender, uint256 addedValue)
-        external
-        returns (bool);
-
-    function name() external view returns (string memory);
-
-    function symbol() external view returns (string memory);
-
-    function totalSupply() external view returns (uint256);
-
-    function transfer(address to, uint256 amount) external returns (bool);
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) external returns (bool);
-}
-
-interface IBondingsCore {
+interface BondingsCoreInterface {
+    error InvalidInitialization();
+    error NotInitializing();
+    error OwnableInvalidOwner(address owner);
+    error OwnableUnauthorizedAccount(address account);
+    event AdminSetParam(string paramName, bytes32 oldValue, bytes32 newValue);
     event BuyBondings(
         string bondingsName,
+        uint256 bondingsId,
         address indexed user,
         uint256 share,
         uint256 lastId,
@@ -55,14 +17,23 @@ interface IBondingsCore {
         uint256 buyPriceAfterFee,
         uint256 fee
     );
-    event Deployed(string bondingsName, address indexed user);
-    event Initialized(uint8 version);
+    event Deployed(
+        string bondingsName,
+        uint256 bondingsId,
+        address indexed user
+    );
+    event Initialized(uint64 version);
+    event OwnershipTransferStarted(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
     event OwnershipTransferred(
         address indexed previousOwner,
         address indexed newOwner
     );
     event SellBondings(
         string bondingsName,
+        uint256 bondingsId,
         address indexed user,
         uint256 share,
         uint256 lastId,
@@ -72,73 +43,69 @@ interface IBondingsCore {
     );
     event TransferBondings(
         string bondingsName,
+        uint256 bondingsId,
         address indexed from,
         address indexed to,
         uint256 share
     );
 
-    function backendSigner() external view returns (address);
+    function acceptOwnership() external;
 
-    function bondingsStage(string memory) external view returns (uint8);
+    function bondingsAmount(string memory) external view returns (uint256);
+
+    function bondingsStage(string memory, uint256)
+        external
+        view
+        returns (uint8);
 
     function buyBondings(
         string memory name,
+        uint256 id,
         uint256 share,
-        uint256 maxOutTokenAmount
+        uint256 maxPayTokenAmount
     ) external;
 
-    function consumeSignature(
-        bytes4 selector,
-        string memory name,
-        address user,
-        uint256 timestamp,
-        bytes memory signature
-    ) external;
-
-    function deploy(
-        string memory name,
-        uint256 timestamp,
-        bytes memory signature
-    ) external;
-
-    function disableSignatureMode() external pure returns (bool);
+    function deploy(string memory name) external;
 
     function fairLaunchSupply() external view returns (uint256);
 
-    function getBondingsTotalShare(string memory name)
+    function getBondingsTotalShare(string memory name, uint256 id)
         external
         view
         returns (uint256);
 
-    function getBuyPrice(string memory name, uint256 amount)
-        external
-        view
-        returns (uint256);
+    function getBuyPrice(
+        string memory name,
+        uint256 id,
+        uint256 amount
+    ) external view returns (uint256);
 
-    function getBuyPriceAfterFee(string memory name, uint256 amount)
-        external
-        view
-        returns (uint256);
+    function getBuyPriceAfterFee(
+        string memory name,
+        uint256 id,
+        uint256 amount
+    ) external view returns (uint256);
 
     function getPrice(uint256 supply, uint256 amount)
         external
         pure
         returns (uint256);
 
-    function getSellPrice(string memory name, uint256 amount)
-        external
-        view
-        returns (uint256);
+    function getSellPrice(
+        string memory name,
+        uint256 id,
+        uint256 amount
+    ) external view returns (uint256);
 
-    function getSellPriceAfterFee(string memory name, uint256 amount)
-        external
-        view
-        returns (uint256);
+    function getSellPriceAfterFee(
+        string memory name,
+        uint256 id,
+        uint256 amount
+    ) external view returns (uint256);
 
     function holdLimit() external view returns (uint256);
 
     function initialize(
-        address backendSigner_,
         address unitTokenAddress_,
         address protocolFeeDestination_
     ) external;
@@ -149,6 +116,8 @@ interface IBondingsCore {
 
     function owner() external view returns (address);
 
+    function pendingOwner() external view returns (address);
+
     function protocolFeeDestination() external view returns (address);
 
     function protocolFeePercent() external view returns (uint256);
@@ -157,11 +126,10 @@ interface IBondingsCore {
 
     function sellBondings(
         string memory name,
+        uint256 id,
         uint256 share,
-        uint256 minInTokenAmount
+        uint256 minGetTokenAmount
     ) external;
-
-    function setBackendSigner(address newBackendSigner) external;
 
     function setFairLaunchSupply(uint256 newFairLaunchSupply) external;
 
@@ -176,12 +144,9 @@ interface IBondingsCore {
 
     function setProtocolFeePercent(uint256 newProtocolFeePercent) external;
 
-    function signatureIsUsed(bytes32) external view returns (bool);
-
-    function signatureValidTime() external view returns (uint256);
-
     function transferBondings(
         string memory name,
+        uint256 id,
         address to,
         uint256 share
     ) external;
@@ -190,188 +155,14 @@ interface IBondingsCore {
 
     function unitTokenAddress() external view returns (address);
 
-    function userShare(string memory, address) external view returns (uint256);
+    function userShare(
+        string memory,
+        uint256,
+        address
+    ) external view returns (uint256);
 }
 
-interface IBONX {
-    event Approval(
-        address indexed owner,
-        address indexed approved,
-        uint256 indexed tokenId
-    );
-    event ApprovalForAll(
-        address indexed owner,
-        address indexed operator,
-        bool approved
-    );
-    event Initialized(uint8 version);
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
-    event Renewal(uint256 nftTokenId, uint256 usdtAmount);
-    event Transfer(
-        address indexed from,
-        address indexed to,
-        uint256 indexed tokenId
-    );
-
-    function approve(address to, uint256 tokenId) external;
-
-    function backendSigner() external view returns (address);
-
-    function balanceOf(address owner) external view returns (uint256);
-
-    function consumeSignature(
-        bytes4 selector,
-        uint256 amount,
-        address user,
-        uint256 timestamp,
-        bytes memory signature
-    ) external;
-
-    function disableSignatureMode() external pure returns (bool);
-
-    function getApproved(uint256 tokenId) external view returns (address);
-
-    function getBonxName(uint256 tokenId) external view returns (string memory);
-
-    function getNextTokenId() external view returns (uint256);
-
-    function initialize(
-        address backendSigner_,
-        address unitTokenAddress_,
-        address renewalDestination_
-    ) external;
-
-    function isApprovedForAll(address owner, address operator)
-        external
-        view
-        returns (bool);
-
-    function name() external view returns (string memory);
-
-    function owner() external view returns (address);
-
-    function ownerOf(uint256 tokenId) external view returns (address);
-
-    function renewal(
-        uint256 nftTokenId,
-        uint256 usdtAmount,
-        uint256 timestamp,
-        bytes memory signature
-    ) external;
-
-    function renewalDestination() external view returns (address);
-
-    function renounceOwnership() external;
-
-    function retrieveNFT(uint256 tokenId) external;
-
-    function safeMint(address to, string memory name)
-        external
-        returns (uint256);
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external;
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) external;
-
-    function setApprovalForAll(address operator, bool approved) external;
-
-    function setBackendSigner(address newBackendSigner) external;
-
-    function setRenewalDestination(address newRenewalDestination) external;
-
-    function signatureIsUsed(bytes32) external view returns (bool);
-
-    function signatureValidTime() external view returns (uint256);
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool);
-
-    function symbol() external view returns (string memory);
-
-    function tokenURI(uint256 tokenId) external view returns (string memory);
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external;
-
-    function transferOwnership(address newOwner) external;
-
-    function unitTokenAddress() external view returns (address);
-}
-
-interface IUSDB {
-    error ERC20InsufficientAllowance(
-        address spender,
-        uint256 allowance,
-        uint256 needed
-    );
-    error ERC20InsufficientBalance(
-        address sender,
-        uint256 balance,
-        uint256 needed
-    );
-    error ERC20InvalidApprover(address approver);
-    error ERC20InvalidReceiver(address receiver);
-    error ERC20InvalidSender(address sender);
-    error ERC20InvalidSpender(address spender);
-    error OwnableInvalidOwner(address owner);
-    error OwnableUnauthorizedAccount(address account);
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    function allowance(address owner, address spender)
-        external
-        view
-        returns (uint256);
-
-    function approve(address spender, uint256 value) external returns (bool);
-
-    function balanceOf(address account) external view returns (uint256);
-
-    function decimals() external pure returns (uint8);
-
-    function mint() external;
-
-    function mintAny(address to, uint256 amount) external;
-
-    function name() external view returns (string memory);
-
-    function owner() external view returns (address);
-
-    function renounceOwnership() external;
-
-    function symbol() external view returns (string memory);
-
-    function totalSupply() external view returns (uint256);
-
-    function transfer(address to, uint256 value) external returns (bool);
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 value
-    ) external returns (bool);
-
-    function transferOwnership(address newOwner) external;
-}
+// THIS FILE WAS AUTOGENERATED FROM THE FOLLOWING ABI JSON:
+/*
+[{"inputs":[],"name":"InvalidInitialization","type":"error"},{"inputs":[],"name":"NotInitializing","type":"error"},{"inputs":[{"internalType":"address","name":"owner","type":"address"}],"name":"OwnableInvalidOwner","type":"error"},{"inputs":[{"internalType":"address","name":"account","type":"address"}],"name":"OwnableUnauthorizedAccount","type":"error"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"string","name":"paramName","type":"string"},{"indexed":false,"internalType":"bytes32","name":"oldValue","type":"bytes32"},{"indexed":false,"internalType":"bytes32","name":"newValue","type":"bytes32"}],"name":"AdminSetParam","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"string","name":"bondingsName","type":"string"},{"indexed":false,"internalType":"uint256","name":"bondingsId","type":"uint256"},{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"share","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"lastId","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"buyPrice","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"buyPriceAfterFee","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"fee","type":"uint256"}],"name":"BuyBondings","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"string","name":"bondingsName","type":"string"},{"indexed":false,"internalType":"uint256","name":"bondingsId","type":"uint256"},{"indexed":true,"internalType":"address","name":"user","type":"address"}],"name":"Deployed","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint64","name":"version","type":"uint64"}],"name":"Initialized","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferStarted","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"previousOwner","type":"address"},{"indexed":true,"internalType":"address","name":"newOwner","type":"address"}],"name":"OwnershipTransferred","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"string","name":"bondingsName","type":"string"},{"indexed":false,"internalType":"uint256","name":"bondingsId","type":"uint256"},{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"share","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"lastId","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"sellPrice","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"sellPriceAfterFee","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"fee","type":"uint256"}],"name":"SellBondings","type":"event"},{"anonymous":false,"inputs":[{"indexed":false,"internalType":"string","name":"bondingsName","type":"string"},{"indexed":false,"internalType":"uint256","name":"bondingsId","type":"uint256"},{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"share","type":"uint256"}],"name":"TransferBondings","type":"event"},{"inputs":[],"name":"acceptOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"","type":"string"}],"name":"bondingsAmount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"}],"name":"bondingsStage","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"share","type":"uint256"},{"internalType":"uint256","name":"maxPayTokenAmount","type":"uint256"}],"name":"buyBondings","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"}],"name":"deploy","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"fairLaunchSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"id","type":"uint256"}],"name":"getBondingsTotalShare","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"getBuyPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"getBuyPriceAfterFee","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"uint256","name":"supply","type":"uint256"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"getPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"pure","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"getSellPrice","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"getSellPriceAfterFee","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"holdLimit","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"address","name":"unitTokenAddress_","type":"address"},{"internalType":"address","name":"protocolFeeDestination_","type":"address"}],"name":"initialize","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"maxSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"mintLimit","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"pendingOwner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"protocolFeeDestination","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"protocolFeePercent","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},{"inputs":[],"name":"renounceOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"uint256","name":"share","type":"uint256"},{"internalType":"uint256","name":"minGetTokenAmount","type":"uint256"}],"name":"sellBondings","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"newFairLaunchSupply","type":"uint256"}],"name":"setFairLaunchSupply","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"newHoldLimit","type":"uint256"}],"name":"setHoldLimit","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"newMaxSupply","type":"uint256"}],"name":"setMaxSupply","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"newMintLimit","type":"uint256"}],"name":"setMintLimit","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"newProtocolFeeDestination","type":"address"}],"name":"setProtocolFeeDestination","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"uint256","name":"newProtocolFeePercent","type":"uint256"}],"name":"setProtocolFeePercent","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"name","type":"string"},{"internalType":"uint256","name":"id","type":"uint256"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"share","type":"uint256"}],"name":"transferBondings","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"address","name":"newOwner","type":"address"}],"name":"transferOwnership","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[],"name":"unitTokenAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"","type":"string"},{"internalType":"uint256","name":"","type":"uint256"},{"internalType":"address","name":"","type":"address"}],"name":"userShare","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}]
+*/
