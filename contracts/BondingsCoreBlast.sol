@@ -20,9 +20,10 @@ contract BondingsCoreBlast is BondingsCore {
     event ChangedPointsOperator(address oldPointsOperator, address newPointsOperator);
 
     function initialize(
-        address backendSigner_, address pointsOperator_, address protocolFeeDestination_
+        address pointsOperator_, address protocolFeeDestination_
     ) public override initializer {
-        super.initialize(backendSigner_, BLAST_USDB, protocolFeeDestination_);
+        // super.initialize(backendSigner_, BLAST_USDB, protocolFeeDestination_);
+        super.initialize(BLAST_USDB, protocolFeeDestination_);
 		IBlast(BLAST_ETH).configureClaimableYield();
         IBlast(BLAST_ETH).configureClaimableGas();
         IERC20Rebasing(BLAST_USDB).configure(YieldMode.CLAIMABLE);
