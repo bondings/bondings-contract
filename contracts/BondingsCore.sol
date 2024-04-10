@@ -22,7 +22,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
 
     /* ----------------- Storage ---------------- */
     // Total amount of different bondings assets
-    uint256 public bondingsAmount;
+    uint256 public bondingsCount;
 
     // bondings id => bondings name
     mapping(uint256 => string) public bondingsName;
@@ -41,14 +41,14 @@ contract BondingsCore is Ownable2StepUpgradeable {
     
 
     /* ============================= Events ============================= */
-    event Deployed(uint256 bondingsId, string bondingsName, address indexed user);
+    event LaunchBondings(uint256 bondingsId, string bondingsName, address indexed user);
     event BuyBondings(
         uint256 bondingsId, string bondingsName, address indexed user, uint256 share, 
-        uint256 lastId, uint256 buyPrice, uint256 buyPriceAfterFee, uint256 fee
+        uint256 lastShare, uint256 buyPrice, uint256 buyPriceAfterFee, uint256 fee
     );
     event SellBondings(
         uint256 bondingsId, string bondingsName, address indexed user, uint256 share, 
-        uint256 lastId, uint256 sellPrice, uint256 sellPriceAfterFee, uint256 fee
+        uint256 lastShare, uint256 sellPrice, uint256 sellPriceAfterFee, uint256 fee
     );
     event TransferBondings(
         uint256 bondingsId, string bondingsName,
@@ -113,16 +113,16 @@ contract BondingsCore is Ownable2StepUpgradeable {
 
     /* ========================= Write functions ======================== */
     /* ---------------- For User ---------------- */
-    function deploy(string memory name) public {
+    function launchBondings(string memory name) public {
         // Deploy the Bondings
-        uint256 bondingsId = bondingsAmount;
-        bondingsAmount += 1;
+        uint256 bondingsId = bondingsCount;
+        bondingsCount += 1;
         bondingsName[bondingsId] = name;
         bondingsStage[bondingsId] = 1;
         bondingsTotalShare[bondingsId] = 1;
 
         // Event
-        emit Deployed(bondingsId, name, _msgSender());
+        emit LaunchBondings(bondingsId, name, _msgSender());
     }
 
 
