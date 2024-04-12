@@ -4,10 +4,8 @@ import { MetamaskConnector } from "@web3camp/hardhat-metamask-connector"
 import { SignerWithAddress } from "@nomicfoundation/hardhat-ethers/signers";
 
 async function main() {
-  const testMode = false
-
-  const newBondingContractName = testMode ? "BondingsCoreTest" : "BondingsCore"
-  const proxyBondingAddress = process.env.BLAST_BONDINGS_CORE!
+  const newBondingContractName = "BondingsCore"
+  const proxyBondingAddress = process.env.BASE_BONDINGS!
 
   const connector = new MetamaskConnector();
   const admin = await connector.getSigner();

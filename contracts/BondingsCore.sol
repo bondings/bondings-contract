@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/interfaces/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+using SafeERC20 for IERC20;
 
 contract BondingsCore is Ownable2StepUpgradeable {
 
@@ -107,7 +108,8 @@ contract BondingsCore is Ownable2StepUpgradeable {
 
     function getBondingsTotalShare(uint256 bondingsId) public view returns (uint256) {
         require(bondingsStage[bondingsId] != 0, "Bondings not deployed!");
-        return bondingsTotalShare[bondingsId] - 1;
+        return bondingsTotalShare[bondingsId] - 1;  
+            // This is for fitting the rules "the 0th share's price is 1, not 0"
     }
 
 
@@ -157,9 +159,9 @@ contract BondingsCore is Ownable2StepUpgradeable {
         uint256 fee = price * protocolFeePercent / 10000;
         uint256 priceAfterFee = price + fee;
         require(priceAfterFee <= maxPayTokenAmount, "Slippage exceeded!");
-        IERC20(unitTokenAddress).transferFrom(user, address(this), priceAfterFee);
+        IERC20(unitTokenAddress).safeTransferFrom(user, address(this), priceAfterFee);
         if (fee > 0)
-            IERC20(unitTokenAddress).transfer(protocolFeeDestination, fee);
+            IERC20(unitTokenAddress).safeTransfer(protocolFeeDestination, fee);
         
         // Update storage
         bondingsTotalShare[bondingsId] += share;
@@ -192,9 +194,9 @@ contract BondingsCore is Ownable2StepUpgradeable {
         uint256 fee = price * protocolFeePercent / 10000;
         uint256 priceAfterFee = price - fee;
         require(priceAfterFee >= minGetTokenAmount, "Slippage exceeded!");
-        IERC20(unitTokenAddress).transfer(user, priceAfterFee);
+        IERC20(unitTokenAddress).safeTransfer(user, priceAfterFee);
         if (fee > 0)
-            IERC20(unitTokenAddress).transfer(protocolFeeDestination, fee);
+            IERC20(unitTokenAddress).safeTransfer(protocolFeeDestination, fee);
         
         // Update storage
         bondingsTotalShare[bondingsId] -= share;
@@ -220,6 +222,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
         // Check stage and share num
         require(stage == 3, "Transfer is only allowed in stage 3!");
         require(userShare[bondingsId][user] >= share, "Insufficient shares!");
+        require(to != address(0), "Transfer to zero address!");
 
         // Update storage
         userShare[bondingsId][user] -= share;
@@ -269,6 +272,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
     }
 
     function setProtocolFeeDestination(address newProtocolFeeDestination) public onlyOwner {
+        require(newProtocolFeeDestination != address(0), "Protocol fee destination cannot be zero address!");
         address oldProtocolFeeDestination = protocolFeeDestination;
         protocolFeeDestination = newProtocolFeeDestination;
         emit AdminSetParam(
