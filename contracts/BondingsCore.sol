@@ -1,9 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+
 using SafeERC20 for IERC20;
+
+contract BondingsToken is ERC20 {
+    constructor(
+        string memory name, string memory symbol, uint256 initialSupply
+    ) ERC20(name, symbol) {
+        _mint(_msgSender(), initialSupply);
+    }
+}
 
 contract BondingsCore is Ownable2StepUpgradeable {
 
@@ -37,12 +47,33 @@ contract BondingsCore is Ownable2StepUpgradeable {
     // bondings id => user => [user's share num of this bondings]
     mapping(uint256 => mapping(address => uint256)) public userShare;
 
+    // Phase 2: Initial supply of each bondings ERC20 token
+    uint256 public bondingsTokenSupply;
+
+    // Phase 2: Operator role (for withdraw assets and launch ERC20)
+    mapping(address => bool) public isOperator;
+
+    // Phase 2: Each bondings has a symbol
+    mapping(uint256 => string) public bondingsSymbol;
+
+    // Phase 2: Each bondings in stage 3 has a ERC20 token address
+    mapping(uint256 => address) public bondingsTokenAddress;
+
     /* ----------- Reserve for upgrade ---------- */
-    uint256[50] private __gap;
+    uint256[46] private __gap;
+
+
+    /* ============================ Modifiers =========================== */
+    modifier onlyOperator() {
+        require(isOperator[_msgSender()], "Not operator!");
+        _;
+    }
     
 
     /* ============================= Events ============================= */
-    event LaunchBondings(uint256 bondingsId, string bondingsName, address indexed user);
+    event LaunchBondings(
+        uint256 bondingsId, string bondingsName, string bondingsSymbol, address indexed user
+    );
     event BuyBondings(
         uint256 bondingsId, string bondingsName, address indexed user, uint256 share, 
         uint256 lastShare, uint256 buyPrice, uint256 buyPriceAfterFee, uint256 fee
@@ -51,11 +82,12 @@ contract BondingsCore is Ownable2StepUpgradeable {
         uint256 bondingsId, string bondingsName, address indexed user, uint256 share, 
         uint256 lastShare, uint256 sellPrice, uint256 sellPriceAfterFee, uint256 fee
     );
-    event TransferBondings(
-        uint256 bondingsId, string bondingsName,
-        address indexed from, address indexed to, uint256 share
+    event RetrieveAndDeploy(
+        uint256 bondingsId, string bondingsName, string bondingsSymbol,
+        uint256 finalSupply, address operator, address tokenAddress
     );
     event AdminSetParam(string paramName, bytes32 oldValue, bytes32 newValue);
+    event OperatorSet(address operator, bool isOperator_);
 
 
     /* =========================== Constructor ========================== */
@@ -65,10 +97,10 @@ contract BondingsCore is Ownable2StepUpgradeable {
         __Ownable_init(msg.sender);
         __Ownable2Step_init();
 
-        fairLaunchSupply = 100;
-        mintLimit = 1;
-        holdLimit = 10;
-        maxSupply = 1000000000;
+        fairLaunchSupply = 300; // 300
+        mintLimit = 50;     // 10
+        holdLimit = 50;     // 50
+        maxSupply = 3000;   // 1000000000
 
         protocolFeePercent = 100;
         protocolFeeDestination = protocolFeeDestination_;
@@ -115,16 +147,17 @@ contract BondingsCore is Ownable2StepUpgradeable {
 
     /* ========================= Write functions ======================== */
     /* ---------------- For User ---------------- */
-    function launchBondings(string memory name) public {
+    function launchBondings(string memory name, string memory symbol) public {
         // Deploy the Bondings
         uint256 bondingsId = bondingsCount;
         bondingsCount += 1;
         bondingsName[bondingsId] = name;
+        bondingsSymbol[bondingsId] = symbol;
         bondingsStage[bondingsId] = 1;
         bondingsTotalShare[bondingsId] = 1;
 
         // Event
-        emit LaunchBondings(bondingsId, name, _msgSender());
+        emit LaunchBondings(bondingsId, name, symbol, _msgSender());
     }
 
 
@@ -187,6 +220,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
         // Check stage and share num
         require(share > 0, "Share must be greater than 0!");
         require(stage != 0, "Bondings not deployed!");
+        require(stage != 3, "Bondings already in stage 3!");
         require(userShare[bondingsId][user] >= share, "Insufficient shares!");
 
         // Calculate fees and transfer tokens
@@ -210,26 +244,25 @@ contract BondingsCore is Ownable2StepUpgradeable {
     }
 
 
-    function transferBondings(
-        uint256 bondingsId,
-        address to, 
-        uint256 share
-    ) public {
-        // Local variables
-        address user = _msgSender();
-        uint8 stage = bondingsStage[bondingsId];
-
-        // Check stage and share num
-        require(stage == 3, "Transfer is only allowed in stage 3!");
-        require(userShare[bondingsId][user] >= share, "Insufficient shares!");
-        require(to != address(0), "Transfer to zero address!");
-
-        // Update storage
-        userShare[bondingsId][user] -= share;
-        userShare[bondingsId][to] += share;
+    function retrieveAndDeploy(uint256 bondingsId) public onlyOperator {
+        // Retrieve the bondings assets
+        require(bondingsStage[bondingsId] == 3, "Bondings not in stage 3!");
+        uint256 totalAssets = getPrice(1, maxSupply);
+        IERC20(unitTokenAddress).safeTransfer(_msgSender(), totalAssets);
+        
+        // Create(deploy) the ERC20 token
+        string memory symbol = bytes(bondingsSymbol[bondingsId]).length == 0 ?
+            bondingsName[bondingsId] : bondingsSymbol[bondingsId];
+        IERC20 bondingsToken = new BondingsToken(
+            bondingsName[bondingsId], symbol, bondingsTokenSupply
+        );
+        bondingsTokenAddress[bondingsId] = address(bondingsToken);
 
         // Event
-        emit TransferBondings(bondingsId, bondingsName[bondingsId], user, to, share);
+        emit RetrieveAndDeploy(
+            bondingsId, bondingsName[bondingsId], bondingsSymbol[bondingsId],
+            totalAssets, _msgSender(), address(bondingsToken)
+        );
     }
 
 
@@ -280,5 +313,17 @@ contract BondingsCore is Ownable2StepUpgradeable {
             bytes32(uint256(uint160(oldProtocolFeeDestination))), 
             bytes32(uint256(uint160(newProtocolFeeDestination)))
         );
+    }
+
+    function setBondingsTokenSupply(uint256 newBondingsTokenSupply) public onlyOwner {
+        require(newBondingsTokenSupply >= maxSupply, "Token supply must be greater than bondings max supply!");
+        uint256 oldBondingsTokenSupply = bondingsTokenSupply;
+        bondingsTokenSupply = newBondingsTokenSupply;
+        emit AdminSetParam("bondingsTokenSupply", bytes32(oldBondingsTokenSupply), bytes32(newBondingsTokenSupply));
+    }
+
+    function setOperator(address operator, bool isOperator_) public onlyOwner {
+        isOperator[operator] = isOperator_;
+        emit OperatorSet(operator, isOperator_);
     }
 }

@@ -9,6 +9,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       blast_sepolia: "blast_sepolia", // apiKey is not required, just set a placeholder
       base: process.env.BASE_SCAN_API!,
+      sepolia: process.env.ETHER_SCAN_API!,
     },
     customChains: [
       {

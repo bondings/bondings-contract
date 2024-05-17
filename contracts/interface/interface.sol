@@ -3,27 +3,31 @@
 pragma solidity ^0.8.20;
 
 interface BondingsCoreInterface {
+    error AddressEmptyCode(address target);
+    error AddressInsufficientBalance(address account);
+    error FailedInnerCall();
     error InvalidInitialization();
     error NotInitializing();
     error OwnableInvalidOwner(address owner);
     error OwnableUnauthorizedAccount(address account);
+    error SafeERC20FailedOperation(address token);
     event AdminSetParam(string paramName, bytes32 oldValue, bytes32 newValue);
     event BuyBondings(
         uint256 bondingsId,
         string bondingsName,
         address indexed user,
         uint256 share,
-        uint256 lastId,
+        uint256 lastShare,
         uint256 buyPrice,
         uint256 buyPriceAfterFee,
         uint256 fee
     );
-    event Deployed(
+    event Initialized(uint64 version);
+    event LaunchBondings(
         uint256 bondingsId,
         string bondingsName,
         address indexed user
     );
-    event Initialized(uint64 version);
     event OwnershipTransferStarted(
         address indexed previousOwner,
         address indexed newOwner
@@ -37,7 +41,7 @@ interface BondingsCoreInterface {
         string bondingsName,
         address indexed user,
         uint256 share,
-        uint256 lastId,
+        uint256 lastShare,
         uint256 sellPrice,
         uint256 sellPriceAfterFee,
         uint256 fee
@@ -52,7 +56,7 @@ interface BondingsCoreInterface {
 
     function acceptOwnership() external;
 
-    function bondingsAmount() external view returns (uint256);
+    function bondingsCount() external view returns (uint256);
 
     function bondingsName(uint256) external view returns (string memory);
 
@@ -65,8 +69,6 @@ interface BondingsCoreInterface {
         uint256 share,
         uint256 maxPayTokenAmount
     ) external;
-
-    function deploy(string memory name) external;
 
     function fairLaunchSupply() external view returns (uint256);
 
@@ -106,6 +108,10 @@ interface BondingsCoreInterface {
         address unitTokenAddress_,
         address protocolFeeDestination_
     ) external;
+
+    function isOperator(address) external view returns (bool);
+
+    function launchBondings(string memory name) external;
 
     function maxSupply() external view returns (uint256);
 
