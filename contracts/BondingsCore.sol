@@ -9,9 +9,10 @@ using SafeERC20 for IERC20;
 
 contract BondingsToken is ERC20 {
     constructor(
-        string memory name, string memory symbol, uint256 initialSupply
+        string memory name, string memory symbol, address to, uint256 initialSupply
     ) ERC20(name, symbol) {
-        _mint(_msgSender(), initialSupply);
+        require(initialSupply > 0, "Initial supply must be greater than 0!");
+        _mint(to, initialSupply);
     }
 }
 
@@ -169,7 +170,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
         // Local variables
         address user = _msgSender();
         uint8 stage = bondingsStage[bondingsId];
-        uint256 totalShare = bondingsTotalShare[bondingsId];
+        uint256 totalShare = getBondingsTotalShare(bondingsId);
 
         // Check requirements
         require(share > 0, "Share must be greater than 0!");
@@ -180,7 +181,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
         if (stage == 1) {
             require(share <= mintLimit, "Exceed mint limit in stage 1!");
             require(userShare[bondingsId][user] + share <= holdLimit, "Exceed hold limit in stage 1!");
-            if (totalShare + share > fairLaunchSupply) 
+            if (totalShare + share >= fairLaunchSupply) 
                 bondingsStage[bondingsId] = 2;           // Stage transition: 1 -> 2
         } else if (stage == 2) {
             if (totalShare + share == maxSupply)
@@ -203,7 +204,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
         // Event
         emit BuyBondings(
             bondingsId, bondingsName[bondingsId], user, share, 
-            totalShare + share - 1, price, priceAfterFee, fee
+            totalShare + share, price, priceAfterFee, fee
         );
     }
 
@@ -254,7 +255,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
         string memory symbol = bytes(bondingsSymbol[bondingsId]).length == 0 ?
             bondingsName[bondingsId] : bondingsSymbol[bondingsId];
         IERC20 bondingsToken = new BondingsToken(
-            bondingsName[bondingsId], symbol, bondingsTokenSupply
+            bondingsName[bondingsId], symbol, _msgSender(), bondingsTokenSupply
         );
         bondingsTokenAddress[bondingsId] = address(bondingsToken);
 
