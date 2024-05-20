@@ -50,7 +50,7 @@ describe("test the functions related to assets management", function () {
     await bondingsCoreAdmin.setHoldLimit(300)
     await bondingsCoreAdmin.setMintLimit(300)
     await bondingsCoreAdmin.setOperator(operator.address, true)
-    await bondingsCoreAdmin.setBondingsTokenSupply(ethers.parseEther("1000000000"))
+    await bondingsCoreAdmin.setERC20Supply(ethers.parseEther("1000000000"))
 
     // Carol buys 300 bondings
     const name = 'hello'
@@ -74,9 +74,9 @@ describe("test the functions related to assets management", function () {
       .to.be.revertedWith("Bondings already in stage 3!")
 
     // Operator retrieves the assets
-    await bondingsCoreOperator.retrieveAndDeploy(0)
+    await bondingsCoreOperator.launchERC20(0)
     expect(await mockUSDC.balanceOf(await bondingsCore.getAddress())).to.equal(0)
-    const b0TokenAddress = await bondingsCore.bondingsTokenAddress(0)
+    const b0TokenAddress = await bondingsCore.erc20Address(0)
     const b0Token = (
       await ethers.getContractAt("BondingsToken", b0TokenAddress)
     ) as unknown as BondingsToken

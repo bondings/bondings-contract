@@ -49,7 +49,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
     mapping(uint256 => mapping(address => uint256)) public userShare;
 
     // Phase 2: Initial supply of each bondings ERC20 token
-    uint256 public bondingsTokenSupply;
+    uint256 public erc20Supply;
 
     // Phase 2: Operator role (for withdraw assets and launch ERC20)
     mapping(address => bool) public isOperator;
@@ -58,7 +58,10 @@ contract BondingsCore is Ownable2StepUpgradeable {
     mapping(uint256 => string) public bondingsSymbol;
 
     // Phase 2: Each bondings in stage 3 has a ERC20 token address
-    mapping(uint256 => address) public bondingsTokenAddress;
+    mapping(uint256 => address) public erc20Address;
+
+    // Phase 2: Seed liquidity for ERC20 pool
+    uint256 public seedLiquidity;
 
     /* ----------- Reserve for upgrade ---------- */
     uint256[46] private __gap;
@@ -83,7 +86,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
         uint256 bondingsId, string bondingsName, address indexed user, uint256 share, 
         uint256 lastShare, uint256 sellPrice, uint256 sellPriceAfterFee, uint256 fee
     );
-    event RetrieveAndDeploy(
+    event LaunchERC20(
         uint256 bondingsId, string bondingsName, string bondingsSymbol,
         uint256 finalSupply, address operator, address tokenAddress
     );
@@ -149,6 +152,10 @@ contract BondingsCore is Ownable2StepUpgradeable {
     /* ========================= Write functions ======================== */
     /* ---------------- For User ---------------- */
     function launchBondings(string memory name, string memory symbol) public {
+        // Check name and symbol not empty
+        require(bytes(name).length > 0, "Name cannot be empty!");
+        require(bytes(symbol).length > 0, "Symbol cannot be empty!");
+        
         // Deploy the Bondings
         uint256 bondingsId = bondingsCount;
         bondingsCount += 1;
@@ -245,22 +252,23 @@ contract BondingsCore is Ownable2StepUpgradeable {
     }
 
 
-    function retrieveAndDeploy(uint256 bondingsId) public onlyOperator {
+    function launchERC20(uint256 bondingsId) public onlyOperator {
         // Retrieve the bondings assets
         require(bondingsStage[bondingsId] == 3, "Bondings not in stage 3!");
         uint256 totalAssets = getPrice(1, maxSupply);
-        IERC20(unitTokenAddress).safeTransfer(_msgSender(), totalAssets);
+        IERC20(unitTokenAddress).safeTransfer(protocolFeeDestination, totalAssets - seedLiquidity);
+        IERC20(unitTokenAddress).safeTransfer(_msgSender(), seedLiquidity);
         
         // Create(deploy) the ERC20 token
         string memory symbol = bytes(bondingsSymbol[bondingsId]).length == 0 ?
             bondingsName[bondingsId] : bondingsSymbol[bondingsId];
         IERC20 bondingsToken = new BondingsToken(
-            bondingsName[bondingsId], symbol, _msgSender(), bondingsTokenSupply
+            bondingsName[bondingsId], symbol, _msgSender(), erc20Supply
         );
-        bondingsTokenAddress[bondingsId] = address(bondingsToken);
+        erc20Address[bondingsId] = address(bondingsToken);
 
         // Event
-        emit RetrieveAndDeploy(
+        emit LaunchERC20(
             bondingsId, bondingsName[bondingsId], bondingsSymbol[bondingsId],
             totalAssets, _msgSender(), address(bondingsToken)
         );
@@ -316,11 +324,17 @@ contract BondingsCore is Ownable2StepUpgradeable {
         );
     }
 
-    function setBondingsTokenSupply(uint256 newBondingsTokenSupply) public onlyOwner {
-        require(newBondingsTokenSupply >= maxSupply, "Token supply must be greater than bondings max supply!");
-        uint256 oldBondingsTokenSupply = bondingsTokenSupply;
-        bondingsTokenSupply = newBondingsTokenSupply;
-        emit AdminSetParam("bondingsTokenSupply", bytes32(oldBondingsTokenSupply), bytes32(newBondingsTokenSupply));
+    function setERC20Supply(uint256 newErc20Supply) public onlyOwner {
+        require(newErc20Supply >= maxSupply, "ERC20 supply must be greater than bondings max supply!");
+        uint256 oldErc20Supply = erc20Supply;
+        erc20Supply = newErc20Supply;
+        emit AdminSetParam("erc20Supply", bytes32(oldErc20Supply), bytes32(newErc20Supply));
+    }
+
+    function setSeedLiquidity(uint256 newSeedLiquidity) public onlyOwner {
+        uint256 oldSeedLiquidity = seedLiquidity;
+        seedLiquidity = newSeedLiquidity;
+        emit AdminSetParam("seedLiquidity", bytes32(oldSeedLiquidity), bytes32(newSeedLiquidity));
     }
 
     function setOperator(address operator, bool isOperator_) public onlyOwner {

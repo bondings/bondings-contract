@@ -40,13 +40,16 @@ async function main() {
   // )
 
   // ===== Transfer token using Disperse Contract (permissionless) =====
-  await mockUSDC.approve(
-    process.env.SEPOLIA_DISPERSE!, ethers.parseUnits('10', 6)
-  )
-  await disperse.disperseTokenPermissionless(
-    process.env.SEPOLIA_USDC!,
-    list, list.map(() => ethers.parseUnits('0.04', 6))
-  )
+  // await mockUSDC.approve(
+  //   process.env.SEPOLIA_DISPERSE!, ethers.parseUnits('10', 6)
+  // )
+  // await disperse.disperseTokenPermissionless(
+  //   process.env.SEPOLIA_USDC!,
+  //   list, list.map(() => ethers.parseUnits('0.04', 6))
+  // )
+
+  const bondingsCoreImpl = await ethers.deployContract('BondingsCore')
+  console.log("\x1b[0mBondingsCore Impl Contract deployed to:\x1b[32m", await bondingsCoreImpl.getAddress())
 }
 
 main()
