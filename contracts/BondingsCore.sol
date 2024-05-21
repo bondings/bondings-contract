@@ -64,7 +64,7 @@ contract BondingsCore is Ownable2StepUpgradeable {
     uint256 public seedLiquidity;
 
     /* ----------- Reserve for upgrade ---------- */
-    uint256[46] private __gap;
+    uint256[45] private __gap;
 
 
     /* ============================ Modifiers =========================== */
