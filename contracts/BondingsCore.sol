@@ -48,16 +48,16 @@ contract BondingsCore is Ownable2StepUpgradeable {
     // bondings id => user => [user's share num of this bondings]
     mapping(uint256 => mapping(address => uint256)) public userShare;
 
-    // Phase 2: Initial supply of each bondings ERC20 token
+    // Phase 2: Supply of each ERC20 token
     uint256 public erc20Supply;
 
-    // Phase 2: Operator role (for withdraw assets and launch ERC20)
+    // Phase 2: Operator role (withdraw liquidity and launch ERC20 token)
     mapping(address => bool) public isOperator;
 
-    // Phase 2: Each bondings has a symbol
+    // Phase 2: bondings id => bondings symbol
     mapping(uint256 => string) public bondingsSymbol;
 
-    // Phase 2: Each bondings in stage 3 has a ERC20 token address
+    // Phase 2: bondings id => ERC20 token address
     mapping(uint256 => address) public erc20Address;
 
     // Phase 2: Seed liquidity for ERC20 pool
@@ -101,10 +101,10 @@ contract BondingsCore is Ownable2StepUpgradeable {
         __Ownable_init(msg.sender);
         __Ownable2Step_init();
 
-        fairLaunchSupply = 300; // 300
-        mintLimit = 50;     // 10
-        holdLimit = 50;     // 50
-        maxSupply = 3000;   // 1000000000
+        fairLaunchSupply = 300;
+        mintLimit = 30;
+        holdLimit = 30;
+        maxSupply = 3000;
 
         protocolFeePercent = 100;
         protocolFeeDestination = protocolFeeDestination_;
